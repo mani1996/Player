@@ -1,0 +1,14 @@
+[
+  [
+    {
+      "pathName": "path/to/sample_song", 
+      "name": "Song in playlist 1"
+    }
+  ],
+  [
+    {
+      "pathName": "path/to/sample_song_2", 
+      "name": "Song in playlist 2"
+    }
+  ]
+]
