@@ -1,14 +1,15 @@
-[
-  [
-    {
-      "pathName": "path/to/sample_song", 
-      "name": "Song in playlist 1"
-    }
-  ],
-  [
-    {
-      "pathName": "path/to/sample_song_2", 
-      "name": "Song in playlist 2"
-    }
-  ]
-]
+{
+
+"melody":
+	{
+		"80s":[{"name":"abc","pathName":"/abc.mp3"}],
+		"90s":[{"name":"123","pathName":"/123.mp3"}]
+	},
+
+"rock":[
+	{
+		"name":"def","pathName":"/def.mp3"
+	}
+       ]
+
+}

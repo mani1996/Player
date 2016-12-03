@@ -14,18 +14,20 @@ new = copy.deepcopy(old)
 new[3] = new[3] & ~termios.ECHO
 pynotify.init('Player-notification')
 
-
-def intro():
-	print 'PLAYER'
-	print 'A programmable MP3 Player(wrapper over MPG123) that does the job with minimal overhead\n'
-	print 'Press Ctrl+C for settings'
-
-
 def closeHandler(a=None,b=None):
 	echo(True)
 	print
 	print 'Thanks for using this player'
 	sys.exit(0)
+
+signal.signal(signal.SIGTSTP, closeHandler)
+
+
+
+def intro():
+	print 'PLAYER'
+	print 'A programmable MP3 Player(wrapper over MPG123) that does the job with minimal overhead\n'
+	print 'Press Ctrl+C for settings'
 
 
 def echo(value):
@@ -37,9 +39,85 @@ def echo(value):
 		termios.tcsetattr(fd, termios.TCSADRAIN, new)
 
 
-signal.signal(signal.SIGTSTP, closeHandler)
+def songFormat(song):
+	songParams = ['name', 'pathName']
+	return isinstance(song,dict) and sorted(songParams) == sorted(song.keys())
 
-playlistSongs = json.loads(open('playlist.json').read())[0]
+
+'''
+2 sanity checks are done below:
+*	At least 1 song must be selected in playlist
+*	Every song must fit the specified format for songs. This
+	will help you debug if your playlist.json needs correction
+'''
+def sanity(playlistSongs):
+	return len(playlistSongs)>0 and all(songFormat(song) for song in playlistSongs)
+
+
+# Add all playlists in this dict
+def recursiveAddPlaylist(playlistData):
+	global playlistSongs
+	if sanity(playlistData):
+		playlistSongs+=playlistData
+	else:
+		if isinstance(playlistData,list):
+			for data in playlistData:
+				recursiveAddPlaylist(data)
+		elif isinstance(playlistData,dict):
+			for data in playlistData.values():
+				recursiveAddPlaylist(data)
+
+
+'''
+Feature to combine playlists
+
+Each playlist is specified as a command-line argument and
+must be of format  "param1+param2+param3+..+paramN".
+The above argument denotes the playlist represented by:
+
+	playlistData[param1][param2]..[paramN]
+
+where playlistData is the JSON object in playlist.json
+
+NOTE: Don't use "+" in naming keys in playlist.json
+'''
+
+def addPlaylist(description):
+	global playlistData
+	global playlistSongs
+	params = description.split('+')
+	data = playlistData
+
+	for param in params:
+		try:
+			if isinstance(data, list):
+				data = data[int(param)]
+			else:
+				data = data[param]
+		except Exception:
+			print 'Invalid description : %s' %(description)
+			return
+
+	if sanity(data):
+		playlistSongs+=data
+	else:
+		recursiveAddPlaylist(data)
+
+
+playlistData = json.loads(open('playlist.json').read())
+playlistSongs = []
+
+if len(sys.argv) > 1:
+	for arg in sys.argv[1:]:
+		addPlaylist(arg)
+else:
+	recursiveAddPlaylist(playlistData)
+
+
+if not sanity(playlistSongs):
+	print 'Sanity check fail'
+	sys.exit(0)
+
 length = len(playlistSongs)
 
 done = False
