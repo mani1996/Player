@@ -127,10 +127,12 @@ skipFrames = None
 intro()
 
 while not done:
-	random.shuffle(sequence)
 	index = 0
 	skipFrames = None
 	while index < length:
+		if index == 0:
+			random.shuffle(sequence)
+
 		song = playlistSongs[sequence[index]]
 
 		if not skipFrames:
