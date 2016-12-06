@@ -104,6 +104,27 @@ def addPlaylist(description):
 		recursiveAddPlaylist(data)
 
 
+def getNextFromPattern(pattern, sequence, index):
+	global playlistSongs
+	playlistLength = len(playlistSongs)
+	pattern = pattern.lower()
+	backupIndex = index
+	index = (index + 1)%playlistLength
+	while index != backupIndex:
+		if playlistSongs[sequence[index]]['name'].lower().find(pattern) > -1:
+			return index
+		index = (index + 1)%playlistLength
+
+	return (backupIndex if playlistSongs[sequence[backupIndex]]['name'].lower().find(pattern) 
+		> -1 else -1)
+
+
+def resumable(commandData):
+	global playlistSongs
+	global resumableCommands
+	return (commandData['command'] in resumableCommands) or (commandData['command']=='f' and commandData['nextIndex'] == -1)	
+
+
 playlistData = json.loads(open('playlist.json').read())
 playlistSongs = []
 
@@ -119,12 +140,14 @@ if not sanity(playlistSongs):
 	sys.exit(0)
 
 length = len(playlistSongs)
-
 done = False
 sequence = range(length)
 notification = None
 skipFrames = None
 loop = False
+nextIndex = -1
+commands = ['y','n','p','r','c','l','f']
+resumableCommands = ['c','l']
 
 intro()
 
@@ -180,11 +203,9 @@ while not done:
 		except KeyboardInterrupt:
 			end = time.time()
 			echo(True)
-			prompt = 'Press (y - exit,n - next,p - previous,r - replay,c - resume,l - loop %s) and then Enter:' %('Off' if loop else 'On')
+			prompt = 'Press (y - exit,n - next,p - previous,r - replay,c - resume,l - loop %s,f - find) and then Enter:' %('Off' if loop else 'On')
 			print
 			next = raw_input(prompt)
-			commands = ['y','n','p','r','c','l']
-			resumableCommands = ['c','l']
 
 			while next not in commands:
 				print
@@ -202,9 +223,19 @@ while not done:
 				index = (index + 1 + length)%length
 			elif next == 'l':
 				loop = not loop
+			elif next == 'f':
+				pattern = raw_input('Enter search string:')
+				nextIndex = getNextFromPattern(pattern,sequence,index)
 
-			skipFrames = ((((end-start)*1000)/26) + (0 if skipFrames == None else skipFrames) if next
-				in resumableCommands else None)
+			data = {'command':next}
+			if next == 'f':
+				data['nextIndex'] = nextIndex
+				if nextIndex > -1:
+					index = nextIndex
+				nextIndex = -1
+
+			skipFrames = ((((end-start)*1000)/26) + (0 if skipFrames == None else skipFrames) if resumable(
+				data) else None)
 
 		except Exception as e:
 			print e.message
