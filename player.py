@@ -124,15 +124,16 @@ done = False
 sequence = range(length)
 notification = None
 skipFrames = None
+loop = False
+
 intro()
 
 while not done:
 	index = 0
+	random.shuffle(sequence)
 	skipFrames = None
-	while index < length:
-		if index == 0:
-			random.shuffle(sequence)
 
+	while index < length:
 		song = playlistSongs[sequence[index]]
 
 		if not skipFrames:
@@ -170,13 +171,22 @@ while not done:
 				print
 				print 'Error in playing song %s' %(song['name'])
 			skipFrames = None
+
+			if not loop:
+				index = (index + 1 + length)%length
+				if index == 0:
+					random.shuffle(sequence)
+
 		except KeyboardInterrupt:
 			end = time.time()
 			echo(True)
-			prompt = 'Press (y - exit,n - next,p - previous,r - replay,c - resume) and then Enter:'
+			prompt = 'Press (y - exit,n - next,p - previous,r - replay,c - resume,l - loop %s) and then Enter:' %('Off' if loop else 'On')
 			print
 			next = raw_input(prompt)
-			while next not in ['y','n','p','r','c']:
+			commands = ['y','n','p','r','c','l']
+			resumableCommands = ['c','l']
+
+			while next not in commands:
 				print
 				print 'Invalid choice'
 				next = raw_input(prompt)
@@ -185,18 +195,21 @@ while not done:
 				done = True
 				break
 			elif next == 'p':
-				index = (index - 2 + length)%length
-			elif next in ['r','c']:
 				index = (index - 1 + length)%length
+			elif next in ['r','c']:
+				pass
+			elif next == 'n':
+				index = (index + 1 + length)%length
+			elif next == 'l':
+				loop = not loop
 
-			skipFrames = ((((end-start)*1000)/26) + (0 if skipFrames == None else skipFrames) if next == 'c' 
-				else None)
+			skipFrames = ((((end-start)*1000)/26) + (0 if skipFrames == None else skipFrames) if next
+				in resumableCommands else None)
 
 		except Exception as e:
 			print e.message
 			skipFrames = None
 		finally:
 			echo(True)
-			index = (index + 1)%length
 
 closeHandler()
